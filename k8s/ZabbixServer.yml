@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zabbix-server
+  namespace: zabbix
+  labels:
+    app: zabbix-server
+spec:
+  selector:
+    matchLabels:
+      app: zabbix-server
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: zabbix-server
+    spec:
+      containers:
+        - name: zabbix-server
+          image: zabbix/zabbix-server-mysql:7.0-alpine-latest
+          envFrom:
+            - configMapRef:
+                name: zabbix
+          env:
+            - name: MYSQL_USER
+              value: root
+              # valueFrom:
+              #   secretKeyRef:
+              #     name: zabbix-db
+              #     key: MYSQL_USER
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: zabbix-db
+                  key: MYSQL_ROOT_PASSWORD
+                  # key: MYSQL_PASSWORD
+            - name: MYSQL_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: zabbix-db
+                  key: MYSQL_DATABASE
+          ports:
+            - containerPort: 10051
+              name: zabbix-server
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: zabbix-server
+  namespace: zabbix
+spec:
+  type: ClusterIP
+  ports:
+    - name: zabbix-server
+      port: 10051
+      targetPort: 10051
+  selector:
+    app: zabbix-server

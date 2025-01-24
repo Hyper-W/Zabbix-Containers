@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: zabbix-db
+  namespace: zabbix
+spec:
+  selector:
+    matchLabels:
+      app: zabbix-db
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: zabbix-db
+    spec:
+      containers:
+        - name: zabbix-db
+          image: mariadb:lts
+          args:
+            [
+              "mariadbd",
+              "--character-set-server=utf8",
+              "--collation-server=utf8_bin",
+            ]
+          envFrom:
+            - secretRef:
+                name: zabbix-db
+          ports:
+            - containerPort: 3306
+              name: zabbix-db
+          volumeMounts:
+            - mountPath: "/var/lib/mysql"
+              name: zabbix-db
+      volumes:
+        - name: zabbix-db
+          persistentVolumeClaim:
+            claimName: zabbix-db
+  volumeClaimTemplates:
+    - metadata:
+        name: zabbix-db
+      spec:
+        accessModes:
+          - ReadWriteMany
+        resources:
+          requests:
+            storage: 10Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: zabbix-db
+  namespace: zabbix
+spec:
+  type: ClusterIP
+  ports:
+    - name: zabbix-db
+      port: 3306
+      targetPort: 3306
+  selector:
+    app: zabbix-db
