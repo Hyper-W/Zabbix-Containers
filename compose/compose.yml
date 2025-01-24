@@ -1,0 +1,54 @@
+services:
+  zabbix-server:
+    image: zabbix/zabbix-server-mysql:7.0-alpine-latest
+    container_name: zabbix-server
+    environment:
+      - DB_SERVER_HOST=zabbix-db
+      - MYSQL_USER=root # For Initial DB Creation
+      - MYSQL_PASSWORD=root_password # For Initial DB Creation
+      # - MYSQL_USER=zabbix # After DB Creation
+      # - MYSQL_PASSWORD=zabbix_password # After DB Creation
+      - MYSQL_DATABASE=zabbix
+    ports:
+      - "10051:10051"
+    depends_on:
+      - zabbix-db
+
+  zabbix-web:
+    image: zabbix/zabbix-web-nginx-mysql:7.0-alpine-latest
+    container_name: zabbix-web
+    environment:
+      - ZBX_SERVER_HOST=zabbix-server
+      - DB_SERVER_HOST=zabbix-db
+      - MYSQL_USER=zabbix
+      - MYSQL_PASSWORD=zabbix_password
+      - MYSQL_DATABASE=zabbix
+    ports:
+      - "8080:8080"
+    depends_on:
+      - zabbix-server
+      - zabbix-db
+
+  zabbix-agent:
+    image: zabbix/zabbix-agent2:7.0-alpine-latest
+    container_name: zabbix-agent
+    environment:
+      - ZBX_SERVER_HOST=zabbix-server
+    depends_on:
+      - zabbix-server
+
+  zabbix-db:
+    image: mariadb:lts
+    container_name: zabbix-db
+    environment:
+      - MYSQL_ROOT_PASSWORD=root_password
+      - MYSQL_DATABASE=zabbix
+      - MYSQL_USER=zabbix
+      - MYSQL_PASSWORD=zabbix_password
+    command: [ 'mariadbd','--character-set-server=utf8', '--collation-server=utf8_bin']
+    volumes:
+      - zabbix-db-data:/var/lib/mysql
+
+volumes:
+  zabbix-db-data:
+
